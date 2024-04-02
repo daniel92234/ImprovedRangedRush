@@ -1,5 +1,5 @@
 # RangedRushImproved
 
-Uses a modified code from MicroRTS RangedRush
+Uses a modified code from MicroRTS RangedRush and implements parts of the RangedDefense code.
 
-Creates more workers, builds up to two barracks, and try not to build barracks close to other buildings
+Creates more workers, builds up to two barracks, switch between rush and defense tactics pending on how many own units are on the field or if either players have no bases.
