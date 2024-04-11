@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.lang.Math;
 import rts.GameState;
 import rts.PhysicalGameState;
 import rts.Player;
@@ -70,132 +71,129 @@ public class RangedRushImproved extends AbstractionLayerAI {
         Player p = gs.getPlayer(player);
 //        System.out.println("LightRushAI for player " + player + " (cycle " + gs.getTime() + ")");
 
-        int nbases = 0;
-        int nebases = 0;
-        int nallbases = 0;
-        int nbarracks = 0;
-        int nebarracks = 0;
-        int nallbarracks = 0;
-        int nlights = 0;
-        int nelights = 0;
-        int nalllights = 0;
-        int nheavies = 0;
-        int neheavies = 0;
-        int nallheavies = 0;
-        int nranged = 0;
-        int neranged = 0;
-        int nallranged = 0;
-        int nworkers = 0;
-        int neworkers = 0;
-        int nallworkers = 0;
-        int nunitsnoworker = 0;
-        int neunitsnoworker = 0;
-        int nallunitsnoworker = 0;
-        int nunits = 0;
-        int nallunits = 0;
-        int neunits = 0;
+        // Lists of different unit types
+        List<Unit> bases = new LinkedList<>(); // Player bases
+        List<Unit> ebases = new LinkedList<>(); // Enemy bases
+        List<Unit> allbases = new LinkedList<>(); // All bases
+        List<Unit> barracks = new LinkedList<>(); // Player barracks
+        List<Unit> ebarracks = new LinkedList<>(); // Enemy barracks
+        List<Unit> allbarracks = new LinkedList<>(); // All barracks
+        List<Unit> lights = new LinkedList<>(); // Player light units
+        List<Unit> elights = new LinkedList<>(); // Enemy light units
+        List<Unit> alllights = new LinkedList<>(); // All light units
+        List<Unit> heavies = new LinkedList<>(); // Player heavy units
+        List<Unit> eheavies = new LinkedList<>(); // Enemy heavy units
+        List<Unit> allheavies = new LinkedList<>(); // All heavy units
+        List<Unit> ranged = new LinkedList<>(); // Player ranged units
+        List<Unit> eranged = new LinkedList<>(); // Enemy ranged units
+        List<Unit> allranged = new LinkedList<>(); // All ranged units
+        List<Unit> workers = new LinkedList<>(); // Player worker units
+        List<Unit> eworkers = new LinkedList<>(); // Enemy worker units
+        List<Unit> allworkers = new LinkedList<>(); // All worker units
+        List<Unit> unitsnoworker = new LinkedList<>(); // Player non-worker units
+        List<Unit> eunitsnoworker = new LinkedList<>(); // Enemy non-worker units
+        List<Unit> allunitsnoworker = new LinkedList<>(); // All non-worker units
+        List<Unit> units = new LinkedList<>(); // All player units
+        List<Unit> eunits = new LinkedList<>(); // All enemy units
+        List<Unit> allunits = new LinkedList<>(); // All units
 
         for (Unit u : pgs.getUnits()) {
             if (u.getType() == baseType) {
-                nallbases++;
+                allbases.add(u);
                 if (u.getPlayer() == p.getID()) {
-                    nbases++;
+                    bases.add(u);
                 }
                 else {
-                    nebases++;
+                    ebases.add(u);
                 }
             }
             else if (u.getType() == barracksType) {
-                nallbarracks++;
+                allbarracks.add(u);
                 if (u.getPlayer() == p.getID()) {
-                    nbarracks++;
+                    barracks.add(u);
                 }
                 else {
-                    nebarracks++;
+                    ebarracks.add(u);
                 }
             }
             else if (u.getType() == lightType) {
-                nalllights++;
+                alllights.add(u);
                 if (u.getPlayer() == p.getID()) {
-                    nlights++;
+                    lights.add(u);
                 }
                 else {
-                    nelights++;
+                    elights.add(u);
                 }
             }
             else if (u.getType() == heavyType) {
-                nallheavies++;
+                allheavies.add(u);
                 if (u.getPlayer() == p.getID()) {
-                    nheavies++;
+                    heavies.add(u);
                 }
                 else {
-                    neheavies++;
+                    eheavies.add(u);
                 }
             }
             else if (u.getType() == rangedType) {
-                nallranged++;
+                allranged.add(u);
                 if (u.getPlayer() == p.getID()) {
-                    nranged++;
+                    ranged.add(u);
                 }
                 else {
-                    neranged++;
+                    eranged.add(u);
                 }
             }
             else if (u.getType() == workerType) {
-                nallworkers++;
+                allworkers.add(u);
                 if (u.getPlayer() == p.getID()) {
-                    nworkers++;
+                    workers.add(u);
                 }
                 else {
-                    neworkers++;
+                    eworkers.add(u);
                 }
             }
             if (u.getType() == workerType || u.getType() == lightType || u.getType() == heavyType || u.getType() == rangedType) {
-                nallunits++;
+                allunits.add(u);
                 if (u.getPlayer() == p.getID()) {
-                    nunits++;
+                    units.add(u);
                     if (u.getType() == lightType || u.getType() == heavyType || u.getType() == rangedType) {
-                        nunitsnoworker++;
+                        unitsnoworker.add(u);
                     }
                 }
                 else {
-                    neunits++;
+                    eunits.add(u);
                     if (u.getType() == lightType || u.getType() == heavyType || u.getType() == rangedType) {
-                        neunitsnoworker++;
+                        eunitsnoworker.add(u);
                     }
                 }
             }
         }
 
         // behavior of bases:
-        if (nbases != 0) {
-            for (Unit u : pgs.getUnits()) {
-                if (u.getType() == baseType && u.getPlayer() == player && gs.getActionAssignment(u) == null) {
-                    baseBehavior(u, p, pgs, nworkers, nbases);
-                }
+        for (Unit u : bases) {
+            if (gs.getActionAssignment(u) == null) {
+                baseBehavior(u, p, pgs, bases, eranged, workers, eworkers);
             }
         }
 
         // behavior of barracks:
-        if (nbarracks != 0) {
-            for (Unit u : pgs.getUnits()) {
-                if (u.getType() == barracksType && u.getPlayer() == player && gs.getActionAssignment(u) == null) {
-                    barracksBehavior(u, p, pgs);
-                }
+        for (Unit u : barracks) {
+            if (gs.getActionAssignment(u) == null) {
+                barracksBehavior(u, p, pgs);
             }
         }
 
         // attack behavior of worker units:
-        for (Unit u : pgs.getUnits()) {
-            if (u.getType().canAttack && !u.getType().canHarvest && u.getType() == workerType && u.getPlayer() == player && gs.getActionAssignment(u) == null) {
+        for (Unit u : workers) {
+            if ((u.getType().canAttack && !u.getType().canHarvest && gs.getActionAssignment(u) == null)) {
                 meleeUnitBehaviorRush(u, p, gs);
             }
         }
 
         // attack behavior of ranged units:
-        for (Unit u : pgs.getUnits()) {
-            if (u.getType().canAttack && (u.getType() == lightType || u.getType() == heavyType || u.getType() == rangedType) && u.getPlayer() == player && gs.getActionAssignment(u) == null) {
-                if (nunitsnoworker >= 6 || p.getResources() < 2 || nbases == 0 || nebases == 0 || neunitsnoworker == 0) {
+        for (Unit u : unitsnoworker) {
+            if (u.getType().canAttack && gs.getActionAssignment(u) == null) {
+                if (unitsnoworker.size() >= Math.max(6, eunitsnoworker.size() + (eworkers.size()/2)) || p.getResources() < 2 || bases.isEmpty() || ebases.isEmpty() || eunitsnoworker.isEmpty()) {
                     meleeUnitBehaviorRush(u, p, gs);
                 } else {
                     meleeUnitBehaviorDefense(u, p, gs);
@@ -204,20 +202,40 @@ public class RangedRushImproved extends AbstractionLayerAI {
         }
 
         // behavior of workers:
-        List<Unit> workers = new LinkedList<>();
-        for (Unit u : pgs.getUnits()) {
-            if (u.getType().canHarvest && u.getPlayer() == player) {
-                workers.add(u);
+        List<Unit> workersCanHarvest = new LinkedList<>();
+        for (Unit u : workers) {
+            if (u.getType().canHarvest) {
+                workersCanHarvest.add(u);
             }
         }
-        workersBehavior(workers, p, gs, nbases, nbarracks);
+        workersBehavior(p, gs, workersCanHarvest, bases, barracks, eranged, workers, eworkers);
 
         return translateActions(player, gs);
     }
 
-    public void baseBehavior(Unit u, Player p, PhysicalGameState pgs, int nworkers, int nbases) {
+    public Unit getClosestUnit(Unit u, LinkedList<Unit> units) {
+        Unit closestEnemy = null;
+        int closestDistance = 0;
+        for (Unit u2 : units) {
+            int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
+            if (closestEnemy == null || d < closestDistance) {
+                closestEnemy = u2;
+                closestDistance = d;
+            }
+        }
 
-        if ((nworkers < 3 * nbases) && p.getResources() >= workerType.cost) {
+        return closestEnemy;
+    }
+
+    public void baseBehavior(Unit u, Player p, PhysicalGameState pgs, List<Unit> nbases, List<Unit> eranged, List<Unit> workers, List<Unit> eworkers) {
+
+        boolean rushMode = false;
+
+        if ((pgs.getWidth() <= 12 && eranged.isEmpty()) || (pgs.getWidth() <= 16 && workers.size() < eworkers.size())) {
+            rushMode = true;
+        }
+
+        if (((workers.size() < 3 && !rushMode) || rushMode) && p.getResources() >= workerType.cost) {
             train(u, workerType);
         }
     }
@@ -273,18 +291,22 @@ public class RangedRushImproved extends AbstractionLayerAI {
         }
     }
 
-    public void workersBehavior(List<Unit> workers, Player p, GameState gs, int nbases, int nbarracks) {
+    public void workersBehavior(Player p, GameState gs, List<Unit> workersCanHarvest, List<Unit> bases, List<Unit> barracks, List<Unit> eranged, List<Unit> workers, List<Unit> eworkers) {
         PhysicalGameState pgs = gs.getPhysicalGameState();
-
         int resourcesUsed = 0;
-        List<Unit> freeWorkers = new LinkedList<>(workers);
+        List<Unit> freeWorkers = new LinkedList<>(workersCanHarvest);
+        boolean rushMode = false;
 
-        if (workers.isEmpty()) {
+        if (workersCanHarvest.isEmpty()) {
             return;
         }
 
+        if ((pgs.getWidth() <= 12 && eranged.isEmpty()) || (pgs.getWidth() <= 16 && workers.size() < eworkers.size())) {
+            rushMode = true;
+        }
+
         List<Integer> reservedPositions = new LinkedList<>();
-        if (nbases == 0 && !freeWorkers.isEmpty()) {
+        if (bases.isEmpty() && !freeWorkers.isEmpty()) {
             // build a base:
             if (p.getResources() >= baseType.cost + resourcesUsed) {
                 Unit u = freeWorkers.remove(0);
@@ -293,9 +315,9 @@ public class RangedRushImproved extends AbstractionLayerAI {
             }
         }
 
-        if (nbarracks < 3 && !freeWorkers.isEmpty()) {
+        if (barracks.size() < 2 && !freeWorkers.isEmpty() && !rushMode) {
             // build (a) barrack(s):
-            
+
             if (p.getResources() >= barracksType.cost + resourcesUsed) {
                 Unit u = freeWorkers.remove(0);
                 int u_pos_x = u.getX();
@@ -307,8 +329,8 @@ public class RangedRushImproved extends AbstractionLayerAI {
                     valid_build = false;
                 }
 
-                if ((nbarracks == 0 || // Zero barracks currently on field
-                (nbarracks == 1 && p.getResources() > 13)) // One barrack currently on field
+                if ((barracks.isEmpty() || // Zero barracks currently on field
+                (barracks.size() == 1 && p.getResources() > 13)) // One barrack currently on field
                 && valid_build) {
                     buildIfNotAlreadyBuilding(u,barracksType,u_pos_x,u_pos_y,reservedPositions,p,pgs);
                     resourcesUsed += barracksType.cost;
@@ -318,70 +340,132 @@ public class RangedRushImproved extends AbstractionLayerAI {
             }
         }
 
-        // harvest with all the free workers:
-        List<Unit> stillFreeWorkers = new LinkedList<>();
-        for (Unit u : freeWorkers) {
-            Unit closestBase = null;
-            Unit closestResource = null;
-            int closestDistance = 0;
-            boolean resourceNearEnemyBase = false;
-
-            // Get closest resource for each worker
-            for (Unit u2 : pgs.getUnits()) {
-                if (u2.getType().isResource) {
-                    int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY()); // Movement distance between worker and resource
-                    if ((closestResource == null || d < closestDistance) && !resourceNearEnemyBase) {
-                        closestResource = u2;
-                        closestDistance = d;
+        if (rushMode) {
+            Unit harvestWorker = null;
+            
+            if (freeWorkers.size()>0) harvestWorker = freeWorkers.remove(0);
+        
+            // harvest with the harvest worker:
+            if (harvestWorker!=null) {
+                Unit closestBase = null;
+                Unit closestResource = null;
+                int closestDistance = 0;
+                for(Unit u2:pgs.getUnits()) {
+                    if (u2.getType().isResource) { 
+                        int d = Math.abs(u2.getX() - harvestWorker.getX()) + Math.abs(u2.getY() - harvestWorker.getY());
+                        if (closestResource==null || d<closestDistance) {
+                            closestResource = u2;
+                            closestDistance = d;
+                        }
                     }
                 }
-            }
-            closestDistance = 0;
-
-            // Get closest base for each worker if they are carrying a resource
-            for (Unit u2 : pgs.getUnits()) {
-                if (u2.getType().isStockpile && u2.getPlayer()==p.getID()) {
-                    int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
-                    if (closestBase == null || d < closestDistance) {
-                        closestBase = u2;
-                        closestDistance = d;
+                closestDistance = 0;
+                for(Unit u2:pgs.getUnits()) {
+                    if (u2.getType().isStockpile && u2.getPlayer()==p.getID()) { 
+                        int d = Math.abs(u2.getX() - harvestWorker.getX()) + Math.abs(u2.getY() - harvestWorker.getY());
+                        if (closestBase==null || d<closestDistance) {
+                            closestBase = u2;
+                            closestDistance = d;
+                        }
                     }
                 }
+                boolean harestWorkerFree = true;
+                if (harvestWorker.getResources() > 0) {
+                    if (closestBase!=null) {
+                        AbstractAction aa = getAbstractAction(harvestWorker);
+                        if (aa instanceof Harvest) {
+                            Harvest h_aa = (Harvest)aa;
+                            if (h_aa.getBase()!=closestBase) harvest(harvestWorker, null, closestBase);
+                        } else {
+                            harvest(harvestWorker, null, closestBase);
+                        }
+                        harestWorkerFree = false;
+                    }
+                } else {            
+                    if (closestResource!=null && closestBase!=null) {
+                        AbstractAction aa = getAbstractAction(harvestWorker);
+                        if (aa instanceof Harvest) {
+                            Harvest h_aa = (Harvest)aa;
+                            if (h_aa.getTarget() != closestResource || h_aa.getBase()!=closestBase) harvest(harvestWorker, closestResource, closestBase);
+                        } else {
+                            harvest(harvestWorker, closestResource, closestBase);
+                        }
+                        harestWorkerFree = false;
+                    }
+                }
+                
+                if (harestWorkerFree) freeWorkers.add(harvestWorker);
             }
 
-            boolean workerStillFree = true;
-            if (u.getResources() > 0) {
-                if (closestBase!=null) {
-                    AbstractAction aa = getAbstractAction(u);
-                    if (aa instanceof Harvest) {
-                        Harvest h_aa = (Harvest)aa;
-                        if (h_aa.getBase()!=closestBase) {
+            for(Unit u:freeWorkers) meleeUnitBehaviorRush(u, p, gs);
+        }
+        else {
+
+            // harvest with all the free workers:
+            List<Unit> stillFreeWorkers = new LinkedList<>();
+            for (Unit u : freeWorkers) {
+                Unit closestBase = null;
+                Unit closestResource = null;
+                int closestDistance = 0;
+                boolean resourceNearEnemyBase = false;
+
+                // Get closest resource for each worker
+                for (Unit u2 : pgs.getUnits()) {
+                    if (u2.getType().isResource) {
+                        int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY()); // Movement distance between worker and resource
+                        if ((closestResource == null || d < closestDistance) && !resourceNearEnemyBase) {
+                            closestResource = u2;
+                            closestDistance = d;
+                        }
+                    }
+                }
+                closestDistance = 0;
+
+                // Get closest base for each worker if they are carrying a resource
+                for (Unit u2 : pgs.getUnits()) {
+                    if (u2.getType().isStockpile && u2.getPlayer()==p.getID()) {
+                        int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
+                        if (closestBase == null || d < closestDistance) {
+                            closestBase = u2;
+                            closestDistance = d;
+                        }
+                    }
+                }
+
+                boolean workerStillFree = true;
+                if (u.getResources() > 0) {
+                    if (closestBase!=null) {
+                        AbstractAction aa = getAbstractAction(u);
+                        if (aa instanceof Harvest) {
+                            Harvest h_aa = (Harvest)aa;
+                            if (h_aa.getBase()!=closestBase) {
+                                harvest(u, null, closestBase);
+                            }
+                        } else {
                             harvest(u, null, closestBase);
                         }
-                    } else {
-                        harvest(u, null, closestBase);
+                        workerStillFree = false;
                     }
-                    workerStillFree = false;
-                }
-            } else {
-                if (closestResource!=null && closestBase!=null) {
-                    AbstractAction aa = getAbstractAction(u);
-                    if (aa instanceof Harvest) {
-                        Harvest h_aa = (Harvest)aa;
-                        if (h_aa.getTarget() != closestResource || h_aa.getBase()!=closestBase) {
-                            harvest(u, closestResource, closestBase); // Member values target and base are private. Using accessors instead...
+                } else {
+                    if (closestResource!=null && closestBase!=null) {
+                        AbstractAction aa = getAbstractAction(u);
+                        if (aa instanceof Harvest) {
+                            Harvest h_aa = (Harvest)aa;
+                            if (h_aa.getTarget() != closestResource || h_aa.getBase()!=closestBase) {
+                                harvest(u, closestResource, closestBase); // Member values target and base are private. Using accessors instead...
+                            }
+                        } else {
+                            harvest(u, closestResource, closestBase);
                         }
-                    } else {
-                        harvest(u, closestResource, closestBase);
+                        workerStillFree = false;
                     }
-                    workerStillFree = false;
                 }
+                
+                if (workerStillFree) stillFreeWorkers.add(u);
             }
-            
-            if (workerStillFree) stillFreeWorkers.add(u);
+
+            for(Unit u:stillFreeWorkers) meleeUnitBehaviorRush(u, p, gs);
         }
-        
-        for(Unit u:stillFreeWorkers) meleeUnitBehaviorRush(u, p, gs);
     }
 
     @Override
