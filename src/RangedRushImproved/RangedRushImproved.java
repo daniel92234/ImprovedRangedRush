@@ -106,6 +106,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
         List<Unit> allunitsbuildings = new LinkedList<>(); // All units and buildings
         List<Unit> resources = new LinkedList<>(); // Resources
 
+        // Add all the units to lists
         for (Unit u : pgs.getUnits()) {
             if (u.getType() == baseType) {
                 if (u.getPlayer() == p.getID()) {
@@ -160,6 +161,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
             }
         }
 
+        // Create combined lists
         allbases.addAll(bases);
         allbases.addAll(ebases);
         allbarracks.addAll(barracks);
@@ -224,9 +226,28 @@ public class RangedRushImproved extends AbstractionLayerAI {
         // attack behavior of ranged units:
         for (Unit u : unitsnoworker) {
             if (u.getType().canAttack && gs.getActionAssignment(u) == null) {
-                if (unitsnoworker.size() >= Math.max(6, eunitsnoworker.size() + (eworkers.size()/2)) || p.getResources() < 2 || bases.isEmpty() || ebases.isEmpty() || eunitsnoworker.isEmpty()) {
+                boolean rushMode = false;
+
+                if (unitsnoworker.size() >= Math.max(6, eunitsnoworker.size() + (eworkers.size()/2)) ||
+                    p.getResources() < 2 ||
+                    bases.isEmpty() ||
+                    ebases.isEmpty() ||
+                    eunitsnoworker.isEmpty()
+                ) {
+                    rushMode = true;
+                }
+
+                if (!eunitsbuildings.isEmpty()) {
+                    for (Unit b : bases) {
+                        if (getUnitDistance(b, getClosestUnitType(b, eunitsbuildings)) < 8)
+                            rushMode = true;
+                    }
+                }
+
+                if (rushMode) {
                     meleeUnitBehaviorRush(u, p, gs, eunitsbuildings);
-                } else {
+                } 
+                else {
                     meleeUnitBehaviorDefense(u, p, gs, allunitsbuildings);
                 }
             }
@@ -340,7 +361,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
         // Rush if an enemy worker is close to a base
         if (!eworkers.isEmpty()) {
             for (Unit b : bases) {
-                if (getUnitDistance(b, getClosestUnitType(b, eworkers)) < 6) {
+                if (getUnitDistance(b, getClosestUnitType(b, eworkers)) < 5) {
                     rushMode = true;
                 }
             }
