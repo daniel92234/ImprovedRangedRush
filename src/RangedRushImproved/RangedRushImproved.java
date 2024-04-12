@@ -265,7 +265,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
 
         boolean rushMode = false;
 
-        if ((pgs.getWidth() <= 12 && eranged.isEmpty()) || (pgs.getWidth() <= 16 && workers.size() < eworkers.size())) {
+        if ((pgs.getWidth() <= 12 && eranged.isEmpty()) || (pgs.getWidth() <= 16 && workers.size() < eworkers.size()*0.8)) {
             rushMode = true;
         }
 
@@ -333,7 +333,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
             return;
         }
 
-        if ((pgs.getWidth() <= 12 && eranged.isEmpty()) || (pgs.getWidth() <= 16 && workers.size() < eworkers.size())) {
+        if ((pgs.getWidth() <= 12 && eranged.isEmpty())) {
             rushMode = true;
         }
 
