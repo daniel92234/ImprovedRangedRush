@@ -17,6 +17,7 @@ import rts.PhysicalGameState;
 import rts.Player;
 import rts.PlayerAction;
 import rts.units.*;
+import util.Pair;
 
 /**
  *
@@ -260,7 +261,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
                 workersCanHarvest.add(u);
             }
         }
-        workersBehavior(p, gs, workersCanHarvest, bases, barracks, eranged, workers, eworkers, eunitsbuildings, resources);
+        workersBehavior(p, gs, workersCanHarvest, bases, barracks, eranged, workers, eworkers, eunitsbuildings, allbuildings, resources);
 
         return translateActions(player, gs);
     }
@@ -336,6 +337,55 @@ public class RangedRushImproved extends AbstractionLayerAI {
         }
     }
 
+    public boolean buildBarracksAroundNearestBase(Unit u, UnitType b, PhysicalGameState pgs,
+        List<Unit> bases,
+        List<Unit> allbuildings,
+        List<Unit> resources
+    ) {
+        Unit closestPlayerBase = getClosestUnitType(u, bases);
+
+        if (closestPlayerBase != null) {
+            List<Pair<Integer, Integer>> buildPositions = new LinkedList<>();
+            int building_distance = 2;
+
+            x_loop:
+            for (int x = closestPlayerBase.getX()-building_distance; x <= closestPlayerBase.getX()+building_distance; x++) {
+                y_loop:
+                for (int y = closestPlayerBase.getY()-building_distance; y <= closestPlayerBase.getY()+building_distance; y++) {
+
+                    if (x < 1 || x >= pgs.getWidth()) {
+                        continue x_loop;
+                    }
+                    if (y < 1 || y >= pgs.getHeight()) {
+                        continue;
+                    }
+                    if (pgs.getTerrain(x, y) == PhysicalGameState.TERRAIN_WALL) {
+                        continue;
+                    }
+                    for (Unit resource : resources) {
+                        if (x < resource.getX()+building_distance && x > resource.getX()-building_distance && y < resource.getY()+building_distance && y > resource.getY()-building_distance) {
+                            continue y_loop;
+                        }
+                    }
+                    for (Unit building : allbuildings) {
+                        if (x < building.getX()+building_distance && x > building.getX()-building_distance && y < building.getY()+building_distance && y > building.getY()-building_distance) {
+                            continue y_loop;
+                        }
+                    }
+                    buildPositions.add(new Pair<Integer,Integer>(x, y));
+                }
+            }
+            if (buildPositions.isEmpty()) {
+                return false;
+            }
+            build(u, b, buildPositions.getFirst().m_a, buildPositions.getFirst().m_b);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
     public void workersBehavior(Player p, GameState gs, List<Unit> workersCanHarvest,
         List<Unit> bases,
         List<Unit> barracks,
@@ -343,6 +393,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
         List<Unit> workers,
         List<Unit> eworkers,
         List<Unit> eunitsbuildings,
+        List<Unit> allbuildings,
         List<Unit> resources
     ) {
         PhysicalGameState pgs = gs.getPhysicalGameState();
@@ -358,10 +409,10 @@ public class RangedRushImproved extends AbstractionLayerAI {
             rushMode = true;
         }
 
-        // Rush if an enemy worker is close to a base
-        if (!eworkers.isEmpty()) {
+        // Make workers defend the nearest bases if enemies are nearby
+        if (!eworkers.isEmpty() && !bases.isEmpty()) {
             for (Unit b : bases) {
-                if (getUnitDistance(b, getClosestUnitType(b, eworkers)) < 5) {
+                if (getUnitDistance(getClosestUnitType(b, bases), getClosestUnitType(b, eworkers)) < 5) {
                     rushMode = true;
                 }
             }
@@ -382,19 +433,10 @@ public class RangedRushImproved extends AbstractionLayerAI {
 
             if (p.getResources() >= barracksType.cost + resourcesUsed) {
                 Unit u = freeWorkers.remove(0);
-                int u_pos_x = u.getX();
-                int u_pos_y = u.getY();
-
-                boolean valid_build = true;
-
-                if (u_pos_x <= 0 || u_pos_y <= 0 || u_pos_x >= pgs.getWidth() - 1 || u_pos_y >= pgs.getHeight() - 1) {
-                    valid_build = false;
-                }
 
                 if ((barracks.isEmpty() || // Zero barracks currently on field
-                (barracks.size() == 1 && p.getResources() > 13)) // One barrack currently on field
-                && valid_build) {
-                    buildIfNotAlreadyBuilding(u,barracksType,u_pos_x,u_pos_y,reservedPositions,p,pgs);
+                (barracks.size() == 1 && p.getResources() > 13))) { // One barrack currently on field
+                    buildBarracksAroundNearestBase(u, barracksType, pgs, bases, allbuildings, resources);
                     resourcesUsed += barracksType.cost;
                 } else {
                     freeWorkers.add(u);
@@ -412,7 +454,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
                 Unit closestBase = getClosestUnitType(harvestWorker, bases);
                 Unit closestResource = getClosestUnitType(harvestWorker, resources);
                 
-                boolean harestWorkerFree = true;
+                boolean harvestWorkerFree = true;
                 if (harvestWorker.getResources() > 0) {
                     if (closestBase!=null) {
                         AbstractAction aa = getAbstractAction(harvestWorker);
@@ -422,7 +464,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
                         } else {
                             harvest(harvestWorker, null, closestBase);
                         }
-                        harestWorkerFree = false;
+                        harvestWorkerFree = false;
                     }
                 } else {            
                     if (closestResource!=null && closestBase!=null) {
@@ -433,11 +475,11 @@ public class RangedRushImproved extends AbstractionLayerAI {
                         } else {
                             harvest(harvestWorker, closestResource, closestBase);
                         }
-                        harestWorkerFree = false;
+                        harvestWorkerFree = false;
                     }
                 }
                 
-                if (harestWorkerFree) freeWorkers.add(harvestWorker);
+                if (harvestWorkerFree) freeWorkers.add(harvestWorker);
             }
 
             for(Unit u:freeWorkers) meleeUnitBehaviorRush(u, p, gs, eunitsbuildings);
