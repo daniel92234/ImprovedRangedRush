@@ -209,10 +209,10 @@ public class RangedRushImproved extends AbstractionLayerAI {
         List<Unit> resources_gather = new LinkedList<>(resources); // Resources not exclusively nearby enemy's bases
         
         for (Unit r : resources) {
-            if (getUnitDistance(r, getClosestUnitType(r, bases)) < 9) {
+            if (getUnitDistance(r, getClosestUnitType(r, bases)) < 11) {
                 resources_near_player_base.add(r);
             }
-            if (getUnitDistance(r, getClosestUnitType(r, ebases)) < 9) {
+            if (getUnitDistance(r, getClosestUnitType(r, ebases)) < 11) {
                 resources_near_enemy_base.add(r);
             }
         }
@@ -249,7 +249,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
             if (u.getType().canAttack && gs.getActionAssignment(u) == null) {
                 boolean rushMode = false;
 
-                if (unitsnoworker.size() >= Math.max(6, eunitsnoworker.size() + (eworkers.size()/2)) ||
+                if (unitsnoworker.size() >= Math.max(8, eunitsnoworker.size() + (eworkers.size()/2)) ||
                     p.getResources() < 2 ||
                     bases.isEmpty() ||
                     ebases.isEmpty() ||
@@ -317,6 +317,10 @@ public class RangedRushImproved extends AbstractionLayerAI {
         return Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
     }
 
+    public int getPointDistance(int x1, int y1, int x2, int y2) {
+        return Math.abs(x2 - x1) + Math.abs(y2 - y1);
+    }
+
     public void baseBehavior(Unit u, Player p, PhysicalGameState pgs, List<Unit> eranged, List<Unit> workers, List<Unit> eworkers) {
 
         boolean rushMode = (pgs.getWidth() <= 12 && eranged.isEmpty()) || (pgs.getWidth() <= 16 && workers.size() < eworkers.size()*0.8);
@@ -371,13 +375,16 @@ public class RangedRushImproved extends AbstractionLayerAI {
         List<Unit> bases,
         List<Unit> ebases,
         List<Unit> allbuildings,
-        List<Unit> resources_near_no_base
+        List<Unit> resources_gather
     ) {
 
-        Unit closestResource = getClosestUnitType(u, resources_near_no_base);
-        if (closestResource != null) {
-            List<Pair<Integer, Integer>> buildPositions = new LinkedList<>();
+        Unit closestResource = getClosestUnitType(u, resources_gather);
 
+        if (closestResource != null) {
+
+            Unit closestEnemyBase = getClosestUnitType(u, ebases);
+            List<Pair<Integer, Integer>> buildPositions = new LinkedList<>();
+            
             for (int building_distance = 2; building_distance < 7; building_distance++) {
                 x_loop:
                 for (int x = closestResource.getX()-building_distance; x <= closestResource.getX()+building_distance; x++) {
@@ -393,7 +400,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
                         }
 
                         // Don't build around resources
-                        for (Unit resource : resources_near_no_base) {
+                        for (Unit resource : resources_gather) {
                             if (x < resource.getX()+2 && x > resource.getX()-2 && y < resource.getY()+2 && y > resource.getY()-2) {
                                 continue y_loop;
                             }
@@ -426,8 +433,26 @@ public class RangedRushImproved extends AbstractionLayerAI {
                         buildPositions.add(new Pair<Integer,Integer>(x, y));
                     }
                 }
+
                 if (!buildPositions.isEmpty()) {
-                    build(u, baseType, buildPositions.getFirst().m_a, buildPositions.getFirst().m_b);
+
+                    // Build base further away from enemy base
+                    if (closestEnemyBase != null) {
+                        int furthest_d = 0;
+                        Pair<Integer,Integer> furthest_point = null;
+
+                        for (Pair<Integer,Integer> point : buildPositions) {
+                            int pointDistance = getPointDistance(point.m_a, point.m_b, closestEnemyBase.getX(), closestEnemyBase.getY());
+                            if (pointDistance > furthest_d) {
+                                furthest_d = pointDistance;
+                                furthest_point = point;
+                            }
+                        }
+                        build(u, baseType, furthest_point.m_a, furthest_point.m_b);
+                    }
+                    else {
+                        build(u, baseType, buildPositions.getFirst().m_a, buildPositions.getFirst().m_b);
+                    }
                     break;
                 }
             }
@@ -436,12 +461,14 @@ public class RangedRushImproved extends AbstractionLayerAI {
 
     public void buildBarracksAroundNearestBase(Unit u, PhysicalGameState pgs,
         List<Unit> bases,
+        List<Unit> ebases,
         List<Unit> allbuildings,
         List<Unit> resources
     ) {
         Unit closestPlayerBase = getClosestUnitType(u, bases);
-
         if (closestPlayerBase != null) {
+
+            Unit closestEnemyBase = getClosestUnitType(u, ebases);
             List<Pair<Integer, Integer>> buildPositions = new LinkedList<>();
 
             for (int building_distance = 2; building_distance < 7; building_distance++) {
@@ -493,7 +520,24 @@ public class RangedRushImproved extends AbstractionLayerAI {
                     }
                 }
                 if (!buildPositions.isEmpty()) {
-                    build(u, barracksType, buildPositions.getFirst().m_a, buildPositions.getFirst().m_b);
+
+                    // Build barrack further away from enemy base
+                    if (closestEnemyBase != null) {
+                        int cloest_d = Integer.MAX_VALUE;
+                        Pair<Integer,Integer> closest_point = null;
+
+                        for (Pair<Integer,Integer> point : buildPositions) {
+                            int pointDistance = getPointDistance(point.m_a, point.m_b, closestEnemyBase.getX(), closestEnemyBase.getY());
+                            if (pointDistance < cloest_d) {
+                                cloest_d = pointDistance;
+                                closest_point = point;
+                            }
+                        }
+                        build(u, barracksType, closest_point.m_a, closest_point.m_b);
+                    }
+                    else {
+                        build(u, barracksType, buildPositions.getFirst().m_a, buildPositions.getFirst().m_b);
+                    }
                     break;
                 }
             }
@@ -534,7 +578,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
         }
 
         // build (a) base(s):
-        if (p.getResources() >= baseType.cost + resourcesUsed && bases.isEmpty()) {
+        if (p.getResources() >= baseType.cost + resourcesUsed && !resources_gather.isEmpty() && bases.isEmpty()) {
             Unit u = freeWorkers.remove(0);
             buildBaseAroundNearestResource(u, pgs, bases, ebases, allbuildings, resources_gather);
             resourcesUsed += baseType.cost;
@@ -545,9 +589,9 @@ public class RangedRushImproved extends AbstractionLayerAI {
 
             if (p.getResources() >= barracksType.cost + resourcesUsed) {
                 if ((barracks.isEmpty() || // Zero barracks currently on field
-                (barracks.size() == 1 && p.getResources() > 13))) { // One barrack currently on field
+                (barracks.size() == 1 && p.getResources() > 11))) { // One barrack currently on field
                     Unit u = freeWorkers.remove(0);
-                    buildBarracksAroundNearestBase(u, pgs, bases, allbuildings, resources);
+                    buildBarracksAroundNearestBase(u, pgs, bases, ebases, allbuildings, resources);
                     resourcesUsed += barracksType.cost;
                 }
             }
