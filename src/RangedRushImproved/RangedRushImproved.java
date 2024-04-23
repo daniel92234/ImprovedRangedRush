@@ -226,7 +226,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
         // behavior of bases:
         for (Unit u : bases) {
             if (gs.getActionAssignment(u) == null) {
-                baseBehavior(u, p, pgs, eranged, workers, eworkers);
+                baseBehavior(u, p, pgs, eranged, workers, eworkers, resources_gather);
             }
         }
 
@@ -321,11 +321,42 @@ public class RangedRushImproved extends AbstractionLayerAI {
         return Math.abs(x2 - x1) + Math.abs(y2 - y1);
     }
 
-    public void baseBehavior(Unit u, Player p, PhysicalGameState pgs, List<Unit> eranged, List<Unit> workers, List<Unit> eworkers) {
+    public void baseBehavior(Unit u, Player p, PhysicalGameState pgs, List<Unit> eranged, List<Unit> workers, List<Unit> eworkers, List<Unit> resources_gather) {
 
         boolean rushMode = (pgs.getWidth() <= 12 && eranged.isEmpty()) || (pgs.getWidth() <= 16 && workers.size() < eworkers.size()*0.8);
 
-        if (((workers.size() < 3 && !rushMode) || rushMode) && p.getResources() >= workerType.cost) {
+        Unit nearest_resource = getClosestUnitType(u, resources_gather);
+        int distance_nearest_resource = -1;
+        int max_workers = 0;
+
+        if (nearest_resource != null) {
+            distance_nearest_resource = getUnitDistance(u, nearest_resource);
+        }
+
+        if (distance_nearest_resource >= 5 && distance_nearest_resource < 9) {
+            max_workers = 4;
+        }
+        else if (distance_nearest_resource >= 10 && distance_nearest_resource < 15) {
+            max_workers = 5;
+        }
+        else if (distance_nearest_resource >= 15) {
+            max_workers = 6;
+        }
+        else {
+            max_workers = 3;
+        }
+
+        if (p.getResources() < 3) {
+            max_workers -= 1;
+        }
+        else if (p.getResources() < 5) {
+            max_workers -= 2;
+        }
+
+        max_workers = Math.max(3, max_workers);
+
+
+        if (((workers.size() < max_workers && !rushMode) || rushMode) && p.getResources() >= workerType.cost) {
             train(u, workerType);
         }
     }
