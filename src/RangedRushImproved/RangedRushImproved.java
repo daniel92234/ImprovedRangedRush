@@ -249,7 +249,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
             if (u.getType().canAttack && gs.getActionAssignment(u) == null) {
                 boolean rushMode = false;
 
-                if (ranged.size() >= Math.max(8, unitsnoworker.size() + (eworkers.size()/2)) ||
+                if (ranged.size() >= Math.max(8, eunitsnoworker.size() + (eworkers.size()/2)) ||
                     p.getResources() < 2 ||
                     bases.isEmpty() ||
                     ebases.isEmpty() ||
