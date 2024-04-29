@@ -233,7 +233,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
         // behavior of barracks:
         for (Unit u : barracks) {
             if (gs.getActionAssignment(u) == null) {
-                barracksBehavior(u, p, pgs, barracks, resources_near_player_base, resources_near_no_base);
+                barracksBehavior(u, p, pgs);
             }
         }
 
@@ -245,15 +245,15 @@ public class RangedRushImproved extends AbstractionLayerAI {
         }
 
         // attack behavior of ranged units:
-        for (Unit u : unitsnoworker) {
+        for (Unit u : ranged) {
             if (u.getType().canAttack && gs.getActionAssignment(u) == null) {
                 boolean rushMode = false;
 
-                if (unitsnoworker.size() >= Math.max(8, eunitsnoworker.size() + (eworkers.size()/2)) ||
+                if (ranged.size() >= Math.max(8, ranged.size() + (eworkers.size()/2)) ||
                     p.getResources() < 2 ||
                     bases.isEmpty() ||
                     ebases.isEmpty() ||
-                    eunitsnoworker.isEmpty()
+                    ranged.isEmpty()
                 ) {
                     rushMode = true;
                 }
@@ -267,7 +267,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
                     meleeUnitBehaviorRush(u, p, gs, eunitsbuildings);
                 } 
                 else {
-                    meleeUnitBehaviorDefense(u, p, gs, allunitsbuildings);
+                    meleeUnitBehaviorDefense(u, p, gs, bases, eunitsbuildings);
                 }
             }
         }
@@ -355,13 +355,12 @@ public class RangedRushImproved extends AbstractionLayerAI {
 
         max_workers = Math.max(3, max_workers);
 
-
         if (((workers.size() < max_workers && !rushMode) || rushMode) && p.getResources() >= workerType.cost) {
             train(u, workerType);
         }
     }
 
-    public void barracksBehavior(Unit u, Player p, PhysicalGameState pgs, List<Unit> barracks, List<Unit> resources_near_player_base, List<Unit> resources_near_no_base) {
+    public void barracksBehavior(Unit u, Player p, PhysicalGameState pgs) {
         if (p.getResources() >= rangedType.cost) {
             train(u, rangedType);
         }
@@ -377,24 +376,14 @@ public class RangedRushImproved extends AbstractionLayerAI {
         }
     }
 
-    public void meleeUnitBehaviorDefense(Unit u, Player p, GameState gs, List<Unit> allunitsbuildings) {
-        PhysicalGameState pgs = gs.getPhysicalGameState();
-        Unit closestEnemy = null;
-        int closestDistance = 0;
-        int mybase = 0;
-        for (Unit u2 : allunitsbuildings) {
-            if (u2.getPlayer() >= 0 && u2.getPlayer() != p.getID()) {
-                int d = getUnitDistance(u, u2);
-                if (closestEnemy == null || d < closestDistance) {
-                    closestEnemy = u2;
-                    closestDistance = d;
-                }
-            }
-            else if (u2.getPlayer()==p.getID() && u2.getType() == baseType) {
-                mybase = getUnitDistance(u, u2);
-            }
-        }
-        if (closestEnemy != null && (closestDistance < pgs.getHeight()/4 || mybase < pgs.getHeight()/4)) {
+    public void meleeUnitBehaviorDefense(Unit u, Player p, GameState gs,
+        List<Unit> bases,
+        List<Unit> eunitsbuildings
+    ) {
+        Unit closestEnemy = getClosestUnitType(u, eunitsbuildings);
+        int closestDistanceEnemy = getUnitDistance(u, closestEnemy);
+        Unit myClosestBase = getClosestUnitType(u, bases);
+        if (closestEnemy != null && (closestDistanceEnemy <= u.getAttackRange() || getUnitDistance(u, myClosestBase) < 6)) {
             attack(u, closestEnemy);
         }
         else {
