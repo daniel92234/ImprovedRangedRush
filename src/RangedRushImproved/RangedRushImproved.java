@@ -227,7 +227,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
         // behavior of bases:
         for (Unit u : bases) {
             if (gs.getActionAssignment(u) == null) {
-                baseBehavior(u, p, pgs, workers, ebases, eunits, resources_gather);
+                baseBehavior(u, p, pgs, workers, eworkers, ebases, eunits, resources_gather);
             }
         }
 
@@ -354,10 +354,10 @@ public class RangedRushImproved extends AbstractionLayerAI {
         return trainPositions.isEmpty();
     }
 
-    public void baseBehavior(Unit u, Player p, PhysicalGameState pgs, List<Unit> workers, List<Unit> ebases, List<Unit> eunits, List<Unit> resources_gather) {
+    public void baseBehavior(Unit u, Player p, PhysicalGameState pgs, List<Unit> workers, List<Unit> eworkers, List<Unit> ebases, List<Unit> eunits, List<Unit> resources_gather) {
 
         int closestEnemyBaseDistance = getUnitDistance(u, getClosestUnitType(u, ebases));
-        boolean rushMode = (closestEnemyBaseDistance <= 20 || eunits.isEmpty());
+        boolean rushMode = (closestEnemyBaseDistance <= 20 || (eworkers.size() > workers.size()*1.15 && closestEnemyBaseDistance <= 24));
 
         Unit nearest_resource = getClosestUnitType(u, resources_gather);
         int distance_nearest_resource = -1;
@@ -629,7 +629,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
             }
         }
 
-        if (closest_dist_base_ebase < 20 && (eunitsnoworker.isEmpty() && ebarracks.isEmpty())) {
+        if (closest_dist_base_ebase <= 20 || (eworkers.size() > workers.size()*1.15 && closest_dist_base_ebase <= 24)) { // Tie to base entering rush mode
             rushMode = true;
         }
 
@@ -647,16 +647,23 @@ public class RangedRushImproved extends AbstractionLayerAI {
             resourcesUsed += baseType.cost;
         }
 
-        if (barracks.size() < 2 && !freeWorkers.isEmpty() && !rushMode) {
-            // build (a) barrack(s):
+        if (!rushMode) {
+            if (barracks.size() < 2 && !freeWorkers.isEmpty() && p.getResources() >= barracksType.cost + resourcesUsed) {
 
-            if (p.getResources() >= barracksType.cost + resourcesUsed) {
+                // build (a) barrack(s):
                 if ((barracks.isEmpty() || // Zero barracks currently on field
                 (barracks.size() == 1 && p.getResources() > 12))) { // One barrack currently on field
                     Unit u = freeWorkers.remove(0);
                     buildBarracksAroundNearestBase(u, pgs, bases, ebases, allbuildings, resources);
                     resourcesUsed += barracksType.cost;
                 }
+            }
+        }
+        else {
+            if (barracks.isEmpty() && !freeWorkers.isEmpty() && p.getResources() >= barracksType.cost + resourcesUsed + 7) {
+                Unit u = freeWorkers.remove(0);
+                buildBarracksAroundNearestBase(u, pgs, bases, ebases, allbuildings, resources);
+                resourcesUsed += barracksType.cost;
             }
         }
 
