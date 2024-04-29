@@ -267,7 +267,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
                     }
                 }
 
-                if (getUnitDistance(u, getClosestUnitType(u, eunits)) < u.getAttackRange()+1) {
+                if (getUnitDistance(u, getClosestUnitType(u, eunits)) < u.getAttackRange()+2 && !getClosestUnitType(u, eunits).isIdle(gs)) {
                     rushMode = false;
                 }
 
@@ -357,7 +357,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
     public void baseBehavior(Unit u, Player p, PhysicalGameState pgs, List<Unit> workers, List<Unit> ebases, List<Unit> eunits, List<Unit> resources_gather) {
 
         int closestEnemyBaseDistance = getUnitDistance(u, getClosestUnitType(u, ebases));
-        boolean rushMode = (closestEnemyBaseDistance <= 20 && eunits.isEmpty());
+        boolean rushMode = (closestEnemyBaseDistance <= 20 || eunits.isEmpty());
 
         Unit nearest_resource = getClosestUnitType(u, resources_gather);
         int distance_nearest_resource = -1;
@@ -621,13 +621,21 @@ public class RangedRushImproved extends AbstractionLayerAI {
             return;
         }
 
-        if (pgs.getWidth() <= 12 || (eunitsnoworker.isEmpty() && ebarracks.isEmpty())) {
+        int closest_dist_base_ebase = Integer.MAX_VALUE;
+        for (Unit b : bases) {
+            int dist_base_ebase = getUnitDistance(b, getClosestUnitType(b, ebases));
+            if (closest_dist_base_ebase > dist_base_ebase) {
+                closest_dist_base_ebase = dist_base_ebase;
+            }
+        }
+
+        if (closest_dist_base_ebase < 20 && (eunitsnoworker.isEmpty() && ebarracks.isEmpty())) {
             rushMode = true;
         }
 
         // Make workers defend the nearest base if enemies are nearby it
         for (Unit b : bases) {
-            if (getUnitDistance(getClosestUnitType(b, bases), getClosestUnitType(b, eunitsbuildings)) < 5) {
+            if (getUnitDistance(getClosestUnitType(b, bases), getClosestUnitType(b, eunitsbuildings)) < 7) {
                 rushMode = true;
             }
         }
