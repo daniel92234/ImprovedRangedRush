@@ -10,7 +10,6 @@ import ai.core.ParameterSpecification;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Iterator;
 import java.util.Random;
 import java.lang.Math;
 import rts.GameState;
@@ -287,6 +286,7 @@ public class RangedRushImproved extends AbstractionLayerAI {
                 workersCanHarvest.add(u);
             }
         }
+        
         workersBehavior(p, gs, workersCanHarvest,
             bases,
             ebases,
@@ -328,30 +328,6 @@ public class RangedRushImproved extends AbstractionLayerAI {
 
     public int getPointDistance(int x1, int y1, int x2, int y2) {
         return Math.abs(x2 - x1) + Math.abs(y2 - y1);
-    }
-
-    public boolean trainIsObstructed(PhysicalGameState pgs, Unit u, List<Unit> allunitsbuildings, List<Unit> resources) {
-        List<Pair<Integer, Integer>> trainPositions = new LinkedList<>();
-        trainPositions.add(new Pair<>(u.getX() + 1, u.getY()));
-        trainPositions.add(new Pair<>(u.getX(), u.getY() + 1));
-        trainPositions.add(new Pair<>(u.getX() - 1, u.getY()));
-        trainPositions.add(new Pair<>(u.getX(), u.getY() - 1));
-    
-        List<Unit> solids = new LinkedList<>(allunitsbuildings);
-        solids.addAll(resources);
-    
-        Iterator<Pair<Integer, Integer>> iterator = trainPositions.iterator();
-        while (iterator.hasNext()) {
-            Pair<Integer, Integer> pos = iterator.next();
-            for (Unit s : solids) {
-                if (pos.m_a.equals(s.getX()) && pos.m_b.equals(s.getY())) {
-                    iterator.remove(); // Remove the element using Iterator's remove method
-                    break;
-                }
-            }
-        }
-    
-        return trainPositions.isEmpty();
     }
 
     public void baseBehavior(Unit u, Player p, PhysicalGameState pgs, List<Unit> workers, List<Unit> eworkers, List<Unit> ebases, List<Unit> eunits, List<Unit> resources_gather) {
